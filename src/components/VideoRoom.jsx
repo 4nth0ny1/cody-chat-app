@@ -25,11 +25,14 @@ const VideoRoom = ({ setJoined }) => {
       user.audioTrack.play();
     }
   };
-  //   const handleUserLeft = () => {};
-
+  const handleUserLeft = (user) => {
+    setUsers((previousUsers) =>
+      previousUsers.filter((u) => u.uid !== user.uid)
+    );
+  };
   useEffect(() => {
     client.on("user-published", handleUserJoined);
-    // client.on("user-left", handleUserLeft);
+    client.on("user-left", handleUserLeft);
 
     client
       .join(APP_ID, CHANNEL, TOKEN, null)
