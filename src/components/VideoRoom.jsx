@@ -12,8 +12,10 @@ const client = AgoraRTC.createClient({
   codec: "vp8",
 });
 
-const VideoRoom = ({ setJoined }) => {
+const VideoRoom = () => {
   const [users, setUsers] = useState([]);
+  const [localTracks, setLocalTracks] = useState([]);
+
   const handleUserJoined = async (user, mediaType) => {
     await client.subscribe(user, mediaType);
 
@@ -22,14 +24,16 @@ const VideoRoom = ({ setJoined }) => {
     }
 
     if (mediaType === "audio") {
-      user.audioTrack.play();
+      // user.audioTrack.play();
     }
   };
+
   const handleUserLeft = (user) => {
     setUsers((previousUsers) =>
       previousUsers.filter((u) => u.uid !== user.uid)
     );
   };
+
   useEffect(() => {
     client.on("user-published", handleUserJoined);
     client.on("user-left", handleUserLeft);
@@ -41,7 +45,7 @@ const VideoRoom = ({ setJoined }) => {
       )
       .then(([tracks, uid]) => {
         const [audioTrack, videoTrack] = tracks;
-        // setLocalTracks(tracks);
+        setLocalTracks(tracks);
         setUsers((previousUsers) => [
           ...previousUsers,
           {
@@ -52,14 +56,30 @@ const VideoRoom = ({ setJoined }) => {
         ]);
         client.publish(tracks);
       });
+
+    return () => {
+      for (let localTrack of localTracks) {
+        localTrack.stop();
+        localTrack.close();
+      }
+      client.off("user-published", handleUserJoined);
+      client.off("user-left", handleUserLeft);
+      client.unpublish(tracks).then(() => client.leave());
+    };
   }, []);
+
   return (
-    <div>
-      <h1>Video Room</h1>
-      {users.map((user) => (
-        <VideoPlayer key={user.uid} user={user} />
-      ))}
-      <button onClick={() => setJoined(false)}>Leave Room</button>
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 200px)",
+        }}
+      >
+        {users.map((user) => (
+          <VideoPlayer key={user.uid} user={user} />
+        ))}
+      </div>
     </div>
   );
 };
